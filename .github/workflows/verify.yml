@@ -1,0 +1,57 @@
+name: Verify package
+
+on:
+    pull_request:
+    workflow_dispatch:
+
+jobs:
+    verify:
+        name: Verify build output
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Setup bun
+              uses: oven-sh/setup-bun@v1
+              with:
+                  bun-version: latest
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 20
+
+            - name: Install dependencies
+              run: bun install
+
+            - name: Build package
+              run: bun run build
+
+            - name: Prepare npm configuration
+              run: |
+                  cat <<'CONFIG' > "$RUNNER_TEMP/npmrc"
+                  registry=https://registry.npmjs.org
+                  always-auth=false
+                  CONFIG
+
+            - name: Pack package
+              id: pack
+              env:
+                  npm_config_userconfig: ${{ runner.temp }}/npmrc
+              run: |
+                  tarball="$(npm pack --pack-destination "$RUNNER_TEMP" | tail -n1)"
+                  echo "tarball=$RUNNER_TEMP/$tarball" >> "$GITHUB_OUTPUT"
+
+            - name: Verify package install
+              env:
+                  npm_config_userconfig: ${{ runner.temp }}/npmrc
+              run: |
+                  temp_dir="$(mktemp -d)"
+                  (
+                      cd "$temp_dir"
+                      npm init --yes >/dev/null 2>&1
+                      npm install "${{ steps.pack.outputs.tarball }}"
+                      node -e "require('elysia');"
+                  )
