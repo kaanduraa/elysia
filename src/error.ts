@@ -466,6 +466,14 @@ export class ValidationError extends Error {
 							this.validator.schema
 				)['~standard']
 
+			const standard2 = // @ts-ignore
+				(
+					'~standard' in this.validator
+						? this.validator
+						: // @ts-ignore
+							this.validator.schema
+				)['~standard']
+
 			const issues = standard.validate(this.value).issues
 
 			// Map standard schema issues to the expected format
