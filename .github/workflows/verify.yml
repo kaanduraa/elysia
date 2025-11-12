@@ -1,0 +1,28 @@
+name: Verify package
+
+on:
+    pull_request:
+    workflow_dispatch:
+
+jobs:
+    verify:
+        name: Verify build output
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Setup bun
+              uses: oven-sh/setup-bun@v1
+              with:
+                  bun-version: latest
+
+            - name: Install dependencies
+              run: bun install
+
+            - name: Build package
+              run: bun run build
+
+            - name: Verify package install
+              run: bunx pkg-pr-new verify
